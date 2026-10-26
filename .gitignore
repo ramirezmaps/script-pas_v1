@@ -10,9 +10,10 @@ __pycache__/
 venv/
 env/
 
-# Herramientas de ingeniería inversa, prototipos previos y documentos locales de trabajo
+# Herramientas de ingeniería inversa, módulos internos de desarrollo y documentos locales
 ingenieria inversa/
 AUTOMATIZACION-PAS-BASE/
+pas151_auditor/
 Descripcion_general.docx
 Revision_Campos_PAS151_Rev11 2.R
 

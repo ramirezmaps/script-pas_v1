@@ -1,63 +1,65 @@
-# Auditor Cartográfico y Espacial PAS 151 — CONAF (ArcGIS Pro `.pyt`)
+# Auditor Cartográfico y Espacial PAS 151 — CONAF (ArcGIS Pro `.pyt` Autónomo)
 
-Caja de herramientas en Python (**Python Toolbox `.pyt`**) para **ArcGIS Pro** que automatiza el control de calidad cartográfico, de tablas de atributos, dominios y topología espacial para entregas digitales del **Permiso Ambiental Sectorial 151 (PAS 151)** conforme al protocolo oficial de **CONAF (Rev. 11)**.
+Caja de herramientas en Python (**Python Toolbox `.pyt` 100% autónoma en un único archivo**) para **ArcGIS Pro** que automatiza el control de calidad cartográfico, de tablas de atributos, dominios y topología espacial para entregas digitales del **Permiso Ambiental Sectorial 151 (PAS 151)** conforme al protocolo oficial de **CONAF (Rev. 11)**.
+
+> **Archivo único autónomo**: Para utilizar la herramienta en cualquier equipo con ArcGIS Pro **solo necesitas el archivo `Auditor_PAS151_CONAF.pyt`** (no requiere carpetas adicionales).
 
 ---
 
 ## Estructura del Repositorio
 
 ```text
-├── Auditor_PAS151_CONAF.pyt        # Caja de Herramientas Python para ArcGIS Pro
-├── Diccionario_PAS151_Rev11.xlsx   # Plantilla oficial CONAF PAS 151 (43 capas y dominios)
-├── pas151_auditor/                 # Motor modular de validación cartográfica y espacial
-│   ├── __init__.py
-│   ├── templates_conaf.py          # 43 plantillas de capas CONAF, regla NA y 31 dominios cerrados
-│   ├── feature_reader.py           # Lector binario DBF/SHP/PRJ + soporte híbrido Shapely / ArcPy
-│   ├── attribute_validators.py     # Validación CRS, 2D, orden de campos, dominios, Sup_ha, Coord_XY y texto
-│   ├── spatial_validators.py       # 7 controles espaciales e inter-capas
-│   ├── engine.py                   # Orquestador PAS151AuditEngine y detección automática de predio
-│   └── excel_exporter.py           # Exportador de reporte Excel multi-hoja (6 pestañas)
-└── requirements.txt                # Dependencias opcionales para ejecución fuera de ArcGIS Pro
+├── Auditor_PAS151_CONAF.pyt        # Caja de Herramientas Python 100% autónoma para ArcGIS Pro
+├── Diccionario_PAS151_Rev11.xlsx   # Plantilla editable en Excel (referencia para personalizar estándares)
+└── requirements.txt                # Dependencias opcionales fuera de ArcGIS Pro
 ```
 
 ---
 
-## Controles y Validaciones Implementadas
+## ¿Cómo Adicionar o Personalizar un Nuevo Estándar de Datos?
 
-### 1. Inventario de Archivos Shapefile
-- Autodetección del sufijo del predio (`<Prefijo>_<Predio>.shp` o `<Prefijo>.shp`).
-- Detección de capas faltantes respecto a la plantilla oficial CONAF y archivos `.shp` adicionales fuera de norma.
+Tienes **2 formas** de agregar nuevas capas, modificar campos (`tipo`, `longitud`, `decimales`) o definir nuevos dominios de valores permitidos:
 
-### 2. Validación Individual por Capa (43 Plantillas CONAF)
-- **Sistema de Referencia de Coordenadas (CRS)**: Verifica proyección `WGS 84 / UTM zone 19S` (`EPSG:32719`).
-- **Geometría 2D**: Verifica ausencia de dimensiones `Z` o `M`.
-- **Estructura de Campos y Regla `NA`**: Verifica existencia, tipo de dato (`String`, `Integer`, `Real`, `Date`), longitud y decimales directamente desde el encabezado binario `.dbf` (ignorando longitud o decimales cuando la plantilla especifica `NA`).
-- **Orden Exacto de Columnas**: Compara la secuencia de campos del `.dbf` contra el orden oficial de la plantilla CONAF.
-- **Dominios Oficiales CONAF y Campos Vacíos**: Valida valores permitidos en los 31 campos con dominio cerrado y detecta valores vacíos o `NA`.
-- **Superficie (`Sup_ha`)**: Recalcula el área geométrica en hectáreas (`round(area / 10000, 2)`) y verifica que la diferencia porcentual no supere el **1%**.
-- **Coordenadas Puntuales (`Coord_X`, `Coord_Y`)**: Recalcula el centroide redondeado al entero y alerta diferencias mayores a 1 m.
-- **Formato de Texto**: Detecta caracteres especiales no permitidos (tildes, apóstrofes, acentos graves/agudos) y dobles espacios.
-- **Validez Geométrica**: Detecta autointersecciones, anillos inválidos y geometrías vacías (`st_is_valid`).
+### Opción A: Sin tocar código (mediante un archivo Excel desde ArcGIS Pro)
 
-### 3. Validaciones Espaciales y de Consistencia entre Capas
-1. **IDs Duplicados**: Verifica unicidad de `N_Area` (`Area`), `Nom_Pto` (`Referencia`), `N_Parc` (`Parcela`) y la clave compuesta `Nom_Predio + N_Rodal` (`Rodales`).
-2. **Traslape con Compilado de Áreas de Corta**: Evalúa intersecciones espaciales (`> 0.01 m²`) entre `Area` y el shapefile compilado de áreas de corta.
-3. **Consistencia `Parcela` vs `Rodales`**: Verifica que cada punto de `Parcela` esté contenido espacialmente dentro de un polígono de `Rodales` y que ambos compartan el mismo `N_Rodal`.
-4. **Contención en `Limite_Predial` y `Area_Proyecto`**: Verifica que `Area`, `Suelos`, `Rangos_pend` y `Pendientes_caminos` no sobresalgan de `Limite_Predial` ni de `Area_Proyecto` (tolerancia `0.005 m²`).
-5. **Traslape `Predios_vecinos` vs `Limite_Predial`**: Detecta superposiciones mayores a `0.01 m²`.
-6. **`Infra_aislada` (Control de Erosión) sobre `Area_Proyecto`**: Verifica que las obras de control de erosión no se ubiquen dentro de `Area_Proyecto`.
-7. **Consistencia Transversal de `Nom_Predio`**: Verifica que todas las capas contengan exactamente el mismo `Nom_Predio` oficial registrado en `Limite_Predial`.
+1. **Exportar la plantilla base**:
+   En ArcGIS Pro, abre `Auditor_PAS151_CONAF.pyt` y ejecuta la herramienta **`2. Exportar Plantilla Oficial CONAF PAS 151 a Excel (.xlsx)`** (o utiliza directamente `Diccionario_PAS151_Rev11.xlsx`).
+2. **Editar o crear tu estándar en Excel**:
+   Abre el archivo `.xlsx`. Encontrarás la hoja `Diccionario de datos` con 6 columnas:
+   | Columna | Descripción | Ejemplo |
+   | :--- | :--- | :--- |
+   | `shp` | Prefijo del archivo Shapefile (sin el sufijo `_<PREDIO>`) | `Area` o `Nueva_Capa` |
+   | `nombre` | Nombre exacto del campo en la tabla `.dbf` | `Tipo_Bos` |
+   | `tipo` | Tipo de dato (`String`, `Integer`, `Real`, `Date`) | `String` |
+   | `longitud` | Ancho del campo (escribe `NA` si no aplica restricción de ancho) | `50` o `NA` |
+   | `decimales` | Cantidad de decimales para campos `Real` (`NA` si no aplica) | `2` o `NA` |
+   | `dominio_conaf` | Valores permitidos separados por coma (dejar vacío si es texto/número libre) | `Permanente, Temporal` |
+
+   *Nota*: El orden en que coloques las filas de cada `shp` en el Excel define el **orden obligatorio de las columnas** que exigirá el validador.
+3. **Cargar el nuevo estándar al auditar**:
+   En la herramienta **`1. Revisión Integral de Campos y Topología PAS 151 (CONAF)`**:
+   - Selecciona tu archivo Excel en **`Archivo Excel con Estándar de Datos Personalizado (Opcional)`**.
+   - En **`Modo de Aplicación del Excel Personalizado`**, elige:
+     - **`FUSIONAR CON PLANTILLA OFICIAL CONAF`**: Mantiene las 43 capas de CONAF y actualiza/agrega las capas o dominios definidos en tu Excel.
+     - **`USAR SOLO EL EXCEL PERSONALIZADO`**: Ignora el estándar interno y audita **únicamente** las capas y reglas definidas en tu archivo Excel (ideal para auditar otros permisos o proyectos distintos al PAS 151).
 
 ---
 
-## Uso en ArcGIS Pro
+### Opción B: Dejar el nuevo estándar integrado permanentemente dentro del `.pyt`
 
-1. Clona o descarga este repositorio en tu equipo.
-2. En **ArcGIS Pro**, abre el panel **Catalog** (*Catálogo*).
-3. Haz clic derecho sobre **Toolboxes** → **Add Toolbox** (*Agregar caja de herramientas*) y selecciona `Auditor_PAS151_CONAF.pyt`.
-4. Ejecuta la herramienta **`1. Revisión Integral de Campos y Topología PAS 151 (CONAF)`**:
-   - **Carpeta de Shapefiles a Revisar**: Carpeta que contiene los `.shp` del predio.
-   - **Nombre del Predio**: Déjalo en `AUTO` para autodetección o ingresa el sufijo del predio (ej. `KIMAL`).
-   - **Shapefile Compilado de Áreas de Corta (Opcional)**: Selecciona el `.shp` compilado si deseas verificar traslapes.
-   - **Archivo Excel con Diccionario Personalizado (Opcional)**: Si se deja vacío, utiliza la plantilla oficial CONAF Rev. 11 integrada.
-   - **Reporte Excel de Salida**: Ruta del archivo `.xlsx` generado (por defecto `00_Reporte_revision_campos_<PREDIO>.xlsx`).
+Si deseas modificar el estándar interno por defecto para no tener que seleccionar un Excel externo:
+1. Abre `Auditor_PAS151_CONAF.pyt` en cualquier editor de texto (VS Code, Notepad++, IDLE).
+2. Ubica la **`SECCIÓN 1: PLANTILLAS CONAF PAS 151 Y DOMINIOS OFICIALES`** al inicio del archivo:
+   - En el diccionario **`DOMINIOS_CONAF`**, agrega o edita la lista de valores permitidos para el nombre del campo:
+     ```python
+     "Nuevo_Campo": ["Valor 1", "Valor 2"],
+     ```
+   - En el diccionario **`_RAW_TEMPLATES`**, agrega el prefijo de la nueva capa y su lista de tuplas `(nombre, tipo, longitud, decimales)` usando `None` cuando aplique `NA`:
+     ```python
+     "Mi_Nueva_Capa": [
+         ("ID_Elem", "Integer", 10, None),
+         ("Nom_Predio", "String", 100, None),
+         ("Sup_ha", "Real", None, 2),
+     ],
+     ```
+3. Guarda el archivo `.pyt` y haz clic derecho -> **Refresh** (*Actualizar*) sobre la caja de herramientas en ArcGIS Pro.

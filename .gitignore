@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Herramientas de ingeniería inversa, prototipos previos y documentos locales de trabajo
+ingenieria inversa/
+AUTOMATIZACION-PAS-BASE/
+Descripcion_general.docx
+Revision_Campos_PAS151_Rev11 2.R
+
+# Reportes generados y temporales de Excel / ArcGIS Pro
+00_Reporte_revision_campos_*.xlsx
+Reporte_*.xlsx
+~$*.xlsx
+~$*.docx
+*.aprx
+*.gdb/
+*.atbx
+*.lock
+*.sr.lock
+*.xml
+.DS_Store
+Thumbs.db
